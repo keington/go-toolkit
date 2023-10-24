@@ -1,4 +1,4 @@
-package logger
+package log
 
 import (
 	"fmt"
@@ -12,14 +12,14 @@ import (
 /**
  * @author: x.gallagher.anderson@gmail.com
  * @time: 2023/10/24 22:15
- * @file: logger.go
+ * @file: log.go
  * @description:
  */
 
 // Logger is the logger instance.
 var logger *zap.SugaredLogger
 
-// LogConfig holds logger configuration options.
+// LogConfig holds log configuration options.
 type LogConfig struct {
 	LogName    string
 	LogPath    string
@@ -29,7 +29,7 @@ type LogConfig struct {
 	LogLevel   zapcore.Level
 }
 
-// InitializeLogger initializes the logger with the given configuration.
+// InitializeLogger initializes the log with the given configuration.
 func InitializeLogger(config LogConfig) error {
 	writeSyncer := getLogWriter(&config)
 	encoder := getEncoder()
@@ -75,8 +75,8 @@ func getEncoder() zapcore.Encoder {
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:          "time",
 		LevelKey:         "level",
-		NameKey:          "logger",
-		CallerKey:        "linenum",
+		NameKey:          "log",
+		CallerKey:        "caller",
 		FunctionKey:      zapcore.OmitKey,
 		MessageKey:       "msg",
 		LineEnding:       zapcore.DefaultLineEnding,
