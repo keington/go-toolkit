@@ -6,84 +6,99 @@ import (
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
+	"strings"
 	"time"
 )
 
 /**
  * @author: x.gallagher.anderson@gmail.com
- * @time: 2023/10/24 22:15
- * @file: log.go
+ * @time: 2023/10/25 0:34
+ * @file: logger.go
  * @description:
  */
 
-// Logger is the logger instance.
-var logger *zap.SugaredLogger
+var (
+	Logger           *zap.SugaredLogger
+	logName          = "default"
+	logPathStr       = "logs"  // log path
+	logMaxSizeStr    = "100"   // log max size
+	logMaxBackupsStr = "30"    // log max backups
+	logMaxAgeStr     = "1"     // log max age
+	logLevelStr      = "debug" // log level
+)
 
-// LogConfig holds log configuration options.
-type LogConfig struct {
+// Level defines the severity of a log message.
+type Level uint8
+
+const (
+	// DebugLevel logs debug messages.
+	DebugLevel Level = iota
+	// InfoLevel logs informational messages.
+	InfoLevel
+	// WarnLevel logs warning messages.
+	WarnLevel
+	// ErrorLevel logs error messages.
+	ErrorLevel
+	// FatalLevel logs fatal messages.
+	FatalLevel
+)
+
+// Config holds logger configuration options.
+type Config struct {
 	LogName    string
 	LogPath    string
 	MaxSize    int
 	MaxBackups int
 	MaxAge     int
-	LogLevel   zapcore.Level
+	LogLevel   Level
 }
 
-// InitializeLogger initializes the log with the given configuration.
-func InitializeLogger(config LogConfig) error {
-	writeSyncer := getLogWriter(&config)
+// InitializeLogger initialize the logger
+func InitializeLogger(name, path string, maxSize, maxBackups, maxAge int, level string) error {
+
+	logConfig := loggerConfigParse(name, path, maxSize, maxBackups, maxAge, level)
+
+	writeSyncer := getLogWriter(logConfig)
 	encoder := getEncoder()
 	core := zapcore.NewCore(encoder,
 		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(writeSyncer)),
-		config.LogLevel)
+		zapcore.Level(logConfig.LogLevel))
 
-	log := zap.New(core, zap.AddCaller())
-	logger = log.Sugar()
+	logger := zap.New(core, zap.AddCaller())
+	Logger = logger.Sugar()
 	return nil
 }
 
-// NewLogConfig creates a LogConfig with default values.
-func NewLogConfig() LogConfig {
-	return LogConfig{
-		LogName:    "default",
-		LogPath:    "logs",
-		MaxSize:    100,
-		MaxBackups: 30,
-		MaxAge:     1,
-		LogLevel:   zapcore.DebugLevel,
-	}
-}
-
-// logger encoder
+// getEncoder logger encoder
 func getEncoder() zapcore.Encoder {
 
-	// 日志级别显示
-	setLevelEncoder := func(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
+	// 自定义日志级别显示
+	customLevelEncoder := func(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString("[" + level.CapitalString() + "]")
 	}
 
-	// 时间显示
-	setTimeEncoder := func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
+	// 自定义时间显示
+	customTimeEncoder := func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(t.Format("2006-01-02 15:04:05"))
 	}
 
-	// 行号显示
-	setCallerEncoder := func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
+	// 自定义行号显示
+	customCallerEncoder := func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
 		enc.AppendString(caller.TrimmedPath())
 	}
 
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:          "time",
 		LevelKey:         "level",
-		NameKey:          "log",
-		CallerKey:        "caller",
+		NameKey:          "logger",
+		CallerKey:        "linenum",
 		FunctionKey:      zapcore.OmitKey,
 		MessageKey:       "msg",
 		LineEnding:       zapcore.DefaultLineEnding,
-		EncodeLevel:      setLevelEncoder, // 大写编码器
-		EncodeTime:       setTimeEncoder,  // 自定义时间格式
+		EncodeLevel:      customLevelEncoder, // 大写编码器
+		EncodeTime:       customTimeEncoder,  // 自定义时间格式
 		EncodeDuration:   zapcore.SecondsDurationEncoder,
-		EncodeCaller:     setCallerEncoder,
+		EncodeCaller:     customCallerEncoder,
 		EncodeName:       zapcore.FullNameEncoder,
 		ConsoleSeparator: " ",
 	}
@@ -91,7 +106,7 @@ func getEncoder() zapcore.Encoder {
 	return zapcore.NewConsoleEncoder(encoderConfig)
 }
 
-func getLogWriter(config *LogConfig) zapcore.WriteSyncer {
+func getLogWriter(config *Config) zapcore.WriteSyncer {
 
 	lumberJackLogger := &lumberjack.Logger{
 		Filename:   fmt.Sprintf("%s/%s.log", config.LogPath, config.LogName),
@@ -104,34 +119,35 @@ func getLogWriter(config *LogConfig) zapcore.WriteSyncer {
 	return zapcore.AddSync(lumberJackLogger)
 }
 
-func Info(args ...interface{}) {
-	logger.Info(args...)
+// loggerConfigParse parses logger configuration
+func loggerConfigParse(name, path string, maxSize, maxBackups, maxAge int, levelStr string) *Config {
+
+	level := LevelFromString(levelStr)
+	logConfig := &Config{
+		LogName:    name,
+		LogPath:    path,
+		MaxSize:    maxSize,
+		MaxBackups: maxBackups,
+		MaxAge:     maxAge,
+		LogLevel:   level,
+	}
+	return logConfig
 }
 
-func Infof(template string, args ...interface{}) {
-	logger.Infof(template, args...)
-}
-
-func Debug(args ...interface{}) {
-	logger.Debug(args...)
-}
-
-func Debugf(template string, args ...interface{}) {
-	logger.Debugf(template, args...)
-}
-
-func Warn(args ...interface{}) {
-	logger.Warn(args...)
-}
-
-func Warnf(template string, args ...interface{}) {
-	logger.Warnf(template, args...)
-}
-
-func Error(args ...interface{}) {
-	logger.Error(args...)
-}
-
-func Errorf(template string, args ...interface{}) {
-	logger.Errorf(template, args...)
+// LevelFromString converts a string to Level
+func LevelFromString(levelStr string) Level {
+	switch strings.ToLower(levelStr) {
+	case "info":
+		return InfoLevel
+	case "debug":
+		return DebugLevel
+	case "warn":
+		return WarnLevel
+	case "error":
+		return ErrorLevel
+	case "fatal":
+		return FatalLevel
+	default:
+		return DebugLevel
+	}
 }
