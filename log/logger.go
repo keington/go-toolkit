@@ -151,3 +151,35 @@ func LevelFromString(levelStr string) Level {
 		return DebugLevel
 	}
 }
+
+func Info(args ...interface{}) {
+	Logger.Info(args...)
+}
+
+func Infof(template string, args ...interface{}) {
+	Logger.Infof(template, args...)
+}
+
+func Debug(args ...interface{}) {
+	Logger.Debug(args...)
+}
+
+func Debugf(template string, args ...interface{}) {
+	Logger.Debugf(template, args...)
+}
+
+func Warn(args ...interface{}) {
+	Logger.Warn(args...)
+}
+
+func Warnf(template string, args ...interface{}) {
+	Logger.Warnf(template, args...)
+}
+
+func Error(args ...interface{}) {
+	Logger.Error(args...)
+}
+
+func Errorf(template string, args ...interface{}) {
+	Logger.Errorf(template, args...)
+}
