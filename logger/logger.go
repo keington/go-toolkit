@@ -17,7 +17,7 @@ import (
  */
 
 // Logger is the logger instance.
-var log *zap.SugaredLogger
+var logger *zap.SugaredLogger
 
 // LogConfig holds logger configuration options.
 type LogConfig struct {
@@ -37,8 +37,8 @@ func InitializeLogger(config LogConfig) error {
 		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(writeSyncer)),
 		config.LogLevel)
 
-	logger := zap.New(core, zap.AddCaller())
-	log = logger.Sugar()
+	log := zap.New(core, zap.AddCaller())
+	logger = log.Sugar()
 	return nil
 }
 
@@ -105,33 +105,33 @@ func getLogWriter(config *LogConfig) zapcore.WriteSyncer {
 }
 
 func Info(args ...interface{}) {
-	log.Info(args...)
+	logger.Info(args...)
 }
 
 func Infof(template string, args ...interface{}) {
-	log.Infof(template, args...)
+	logger.Infof(template, args...)
 }
 
 func Debug(args ...interface{}) {
-	log.Debug(args...)
+	logger.Debug(args...)
 }
 
 func Debugf(template string, args ...interface{}) {
-	log.Debugf(template, args...)
+	logger.Debugf(template, args...)
 }
 
 func Warn(args ...interface{}) {
-	log.Warn(args...)
+	logger.Warn(args...)
 }
 
 func Warnf(template string, args ...interface{}) {
-	log.Warnf(template, args...)
+	logger.Warnf(template, args...)
 }
 
 func Error(args ...interface{}) {
-	log.Error(args...)
+	logger.Error(args...)
 }
 
 func Errorf(template string, args ...interface{}) {
-	log.Errorf(template, args...)
+	logger.Errorf(template, args...)
 }
